@@ -87,7 +87,7 @@ public class BeanMarshaller implements SchemaRegistry.InvalidationListener {
             // Special hack (MID-5803) -- we should NEVER get PrismValue here; but not enough time to fix this right now
             Object bean;
             if (inputBean instanceof PrismValue) {
-                bean = ((PrismValue) inputBean).getRealValue();
+                bean = getRealValue((PrismValue) inputBean);
                 if (bean == null) {
                     return null;
                 }
@@ -124,6 +124,21 @@ public class BeanMarshaller implements SchemaRegistry.InvalidationListener {
         } catch (Throwable t) {
             LOGGER.error("Couldn't marshal an object:\n{}", inputBean, t);
             throw t;
+        }
+    }
+
+    @Nullable
+    private Object getRealValue(@NotNull PrismValue prismValue) {
+        if (prismValue instanceof PrismContainerValue<?>) {
+            PrismContainerValue<?> pcv = (PrismContainerValue<?>) prismValue;
+            if (pcv.getCompileTimeClass() != null) {
+                return prismValue.getRealValue();
+            } else {
+                // This is an ugly hack. Reconsider!
+                return new RawType(prismValue, null, prismContext);
+            }
+        } else {
+            return prismValue.getRealValue();
         }
     }
 
